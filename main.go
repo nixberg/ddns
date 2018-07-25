@@ -2,11 +2,10 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -18,22 +17,27 @@ const (
 	sleepInterval time.Duration = 125 * time.Second
 )
 
-func getActualIP() (string, error) {
+var (
+	buf    bytes.Buffer
+	logger = log.New(&buf, log.Lshortfile)
+)
+
+func getActualIP() string {
 	response, err := http.Get("https://checkip.amazonaws.com")
 	if err != nil {
-		return "", err
+		logger.Fatal(err)
 	}
 	defer response.Body.Close()
 
 	ip, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return "", err
+		logger.Fatal(err)
 	}
 
 	stringIP := strings.TrimSpace(string(ip))
 
 	if net.ParseIP(stringIP) == nil {
-		return "", errors.New("Invalid IP")
+		logger.Fatal("Invalid IP")
 	}
 
 	return stringIP, nil
@@ -64,37 +68,33 @@ func readConfig() (config, error) {
 func main() {
 	config, err := readConfig()
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		logger.Fatal(err)
 	}
 
 	api, err := cloudflare.New(config.APIKey, config.Email)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		logger.Fatal(err)
 	}
 
 	if len(os.Args) == 2 && os.Args[1] == "check" {
-		os.Exit(0)
+		return
 	}
 
 	if config.Email == "email" {
-		for {
-			fmt.Println("Found dummy config. Exiting.")
-			os.Exit(0)
-		}
+		logger.Println("Found dummy config. Exiting.")
+		return
 	}
 
 	update := func() {
 		actualIP, err := getActualIP()
 		if err != nil {
-			fmt.Println(err)
+			logger.Println(err)
 			return
 		}
 
 		dnsRecords, err := api.DNSRecords(config.ZoneID, cloudflare.DNSRecord{})
 		if err != nil {
-			fmt.Println(err)
+			logger.Println(err)
 			return
 		}
 
@@ -106,9 +106,9 @@ func main() {
 						dnsRecord.Content = actualIP
 						err := api.UpdateDNSRecord(config.ZoneID, dnsRecord.ID, dnsRecord)
 						if err != nil {
-							fmt.Println(err)
+							logger.Println(err)
 						} else {
-							fmt.Println("Set", dnsRecord.Name, "to", dnsRecord.Content)
+							logger.Println("Set", dnsRecord.Name, "to", dnsRecord.Content)
 						}
 					}
 					recordExists = true
@@ -123,9 +123,9 @@ func main() {
 					Content: actualIP,
 					Proxied: true,
 				}); err != nil {
-					fmt.Println(err)
+					logger.Println(err)
 				} else {
-					fmt.Println("Created", recordName, "pointing to", actualIP)
+					logger.Println("Created", recordName, "pointing to", actualIP)
 				}
 			}
 		}

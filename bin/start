@@ -1,0 +1,2 @@
+#!/bin/sh
+snapctl get config | $SNAP/bin/ddns

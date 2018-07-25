@@ -6,8 +6,8 @@ grade: stable
 confinement: strict
 
 apps:
-  dyndns:
-    command: snapctl get config | ddns
+  ddns:
+    command: start
     daemon: simple
     restart-condition: on-abnormal
     plugs: [network]
@@ -22,3 +22,8 @@ parts:
     source: .
     plugin: go
     go-importpath: github.com/nixberg/ddns
+  start:
+    source: .
+    plugin: dump
+    stage:
+      - bin/start
