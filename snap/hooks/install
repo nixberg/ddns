@@ -1,0 +1,5 @@
+#!/bin/sh -e
+snapctl set config='email = "email"
+apiKey = "apiKey"
+zoneID = "zoneID"
+records = ["example.com"]'

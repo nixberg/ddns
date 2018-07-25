@@ -1,0 +1,24 @@
+name: ddns
+version: "1.0.0"
+summary: Cloudflare DDNS client
+description: etc
+grade: stable
+confinement: strict
+
+apps:
+  dyndns:
+    command: snapctl get config | ddns
+    daemon: simple
+    restart-condition: on-abnormal
+    plugs: [network]
+  check:
+    command: ddns check
+
+parts:
+  go:
+    source-tag: go1.10.3
+  ddns:
+    after: [go]
+    source: .
+    plugin: go
+    go-importpath: github.com/nixberg/ddns

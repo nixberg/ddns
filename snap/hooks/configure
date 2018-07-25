@@ -1,0 +1,3 @@
+#!/bin/sh -e
+snapctl get config | check
+snapctl restart dyndns
