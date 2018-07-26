@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -19,25 +21,25 @@ const (
 
 var (
 	buf    bytes.Buffer
-	logger = log.New(&buf, log.Lshortfile)
+	logger = log.New(&buf, "", log.Lshortfile)
 )
 
-func getActualIP() string {
+func getActualIP() (string, error) {
 	response, err := http.Get("https://checkip.amazonaws.com")
 	if err != nil {
-		logger.Fatal(err)
+		return "", err
 	}
 	defer response.Body.Close()
 
 	ip, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		logger.Fatal(err)
+		return "", err
 	}
 
 	stringIP := strings.TrimSpace(string(ip))
 
 	if net.ParseIP(stringIP) == nil {
-		logger.Fatal("Invalid IP")
+		return "", errors.New("Invalid IP")
 	}
 
 	return stringIP, nil
@@ -50,26 +52,23 @@ type config struct {
 	Records []string `toml:"records"`
 }
 
-func readConfig() (config, error) {
+func readConfig() config {
 	config := config{}
 	data, err := ioutil.ReadAll(os.Stdin)
 	if err != nil {
-		return config, err
+		logger.Fatal(err)
 	}
 	metadata, err := toml.Decode(string(data), &config)
 	if err != nil {
-		return config, err
+		logger.Fatal(err)
 	} else if len(metadata.Undecoded()) != 0 {
-		return config, errors.New("Invalid configuration")
+		logger.Fatal("Invalid configuration")
 	}
-	return config, nil
+	return config
 }
 
 func main() {
-	config, err := readConfig()
-	if err != nil {
-		logger.Fatal(err)
-	}
+	config := readConfig()
 
 	api, err := cloudflare.New(config.APIKey, config.Email)
 	if err != nil {
