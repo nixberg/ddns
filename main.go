@@ -120,7 +120,6 @@ func main() {
 					Type:    "A",
 					Name:    recordName,
 					Content: actualIP,
-					Proxied: true,
 				}); err != nil {
 					logger.Println(err)
 				} else {
