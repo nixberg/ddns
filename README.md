@@ -3,14 +3,14 @@ Cloudflare DDNS client
 
 ## Usage:
 
-In ```config.toml```:
+In ```ddns.toml```:
 ```toml
-email = "invalid@example.test"
+email = "me@example.test"
 apiKey = "abcd"
 zoneID = "efgh"
 records = ["example.test", "sub.example.test"]
 ```
 
 ```bash
-sudo snap set ddns config="$(cat config.toml)"
+sudo snap set ddns config="$(cat ddns.toml)"
 ```
