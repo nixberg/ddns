@@ -5,7 +5,7 @@ Cloudflare DDNS client
 
 In ```ddns.toml```:
 ```toml
-email = "me@example.test"
+email = "user@example.test"
 apiKey = "abcd"
 zoneID = "efgh"
 records = ["example.test", "sub.example.test"]
