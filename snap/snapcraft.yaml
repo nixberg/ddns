@@ -16,7 +16,7 @@ apps:
 
 parts:
   go:
-    source-tag: go1.10.3
+    source-tag: go1.11
   ddns:
     after: [go]
     source: .
