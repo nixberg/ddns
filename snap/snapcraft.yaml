@@ -18,6 +18,7 @@ parts:
   latest-go:
     plugin: nil
     build-packages:
+    - curl
     - golang-go
     override-build: |
       curl https://gist.githubusercontent.com/nixberg/63130bbc35266a636a9a671ecae6b0b3/raw/fb7014d820f834e185aaa972c5ee22627b26b266/latest-go.sh | /bin/sh
