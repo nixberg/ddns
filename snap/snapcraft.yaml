@@ -7,7 +7,7 @@ confinement: strict
 
 apps:
   ddns:
-    command: start
+    command: run
     daemon: simple
     restart-condition: on-abnormal
     plugs: [network]
@@ -15,15 +15,24 @@ apps:
     command: ddns check
 
 parts:
-  go:
-    source-tag: go1.11
-  ddns:
-    after: [go]
-    source: .
-    plugin: go
-    go-importpath: github.com/nixberg/ddns
-  start:
-    source: .
-    plugin: dump
+  latest-go:
+    plugin: nil
+    build-packages:
+    - golang-go
+    override-build: |
+      curl https://gist.githubusercontent.com/nixberg/63130bbc35266a636a9a671ecae6b0b3/raw/fb7014d820f834e185aaa972c5ee22627b26b266/latest-go.sh | /bin/sh
     stage:
-      - bin/start
+    - bin
+    prime:
+    - -*
+  ddns:
+    after: [latest-go] 
+    plugin: nil
+    source: .
+    override-build: |
+      env GOBIN=$SNAPCRAFT_PART_INSTALL/bin GO111MODULE=on go install
+  run:
+    plugin: dump
+    source: bin
+    organize:
+      run: bin/run
