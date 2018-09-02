@@ -15,23 +15,13 @@ apps:
     command: ddns check
 
 parts:
-  latest-go:
-    plugin: nil
-    build-packages:
-    - curl
-    - golang-go
-    override-build: |
-      curl https://gist.githubusercontent.com/nixberg/63130bbc35266a636a9a671ecae6b0b3/raw/fb7014d820f834e185aaa972c5ee22627b26b266/latest-go.sh | /bin/sh
-    stage:
-    - bin
-    prime:
-    - -*
   ddns:
-    after: [latest-go] 
+    build-snaps:
+      - go
     plugin: nil
     source: .
     override-build: |
-      env GOBIN=$SNAPCRAFT_PART_INSTALL/bin GO111MODULE=on go install
+      env GOBIN=$SNAPCRAFT_PART_INSTALL/bin GO111MODULE=on CGO_ENABLED=0 go install
   run:
     plugin: dump
     source: bin
