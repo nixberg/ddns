@@ -1,4 +1,5 @@
 name: ddns
+base: core18
 version: "1.0.0"
 summary: Cloudflare DDNS client
 description: etc
@@ -21,7 +22,7 @@ parts:
     plugin: nil
     source: .
     override-build: |
-      env GOBIN=$SNAPCRAFT_PART_INSTALL/bin GO111MODULE=on CGO_ENABLED=0 go install
+      env GOBIN=$SNAPCRAFT_PART_INSTALL/bin GO111MODULE=on go install
   run:
     plugin: dump
     source: bin
