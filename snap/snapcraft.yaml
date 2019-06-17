@@ -1,6 +1,6 @@
 name: ddns
 base: core18
-version: "1.0.0"
+version: "1"
 summary: Cloudflare DDNS client
 description: etc
 grade: stable
@@ -8,10 +8,11 @@ confinement: strict
 
 apps:
   ddns:
-    command: run
+    command: ddns.sh
     daemon: simple
     restart-condition: on-abnormal
-    plugs: [network]
+    plugs:
+      - network
   check:
     command: ddns check
 
@@ -21,10 +22,13 @@ parts:
       - go
     plugin: nil
     source: .
+    build-environment:
+      - GO111MODULE: "on"
+      - GOPROXY: https://proxy.golang.org
     override-build: |
-      env GOBIN=$SNAPCRAFT_PART_INSTALL/bin GO111MODULE=on go install
-  run:
+      env GOBIN=$SNAPCRAFT_PART_INSTALL/bin go install
+  launcher:
     plugin: dump
-    source: bin
+    source: snap/local/
     organize:
-      run: bin/run
+      "*": bin/
