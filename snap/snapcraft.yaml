@@ -20,8 +20,10 @@ parts:
   ddns:
     build-snaps:
       - go
-    plugin: go
+    plugin: nil
     source: .
+    override-build: |
+      env GOBIN=$SNAPCRAFT_PART_INSTALL/bin go install
   launcher:
     plugin: dump
     source: snap/local/
