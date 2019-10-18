@@ -20,13 +20,8 @@ parts:
   ddns:
     build-snaps:
       - go
-    plugin: nil
+    plugin: go
     source: .
-    build-environment:
-      - GO111MODULE: "on"
-      - GOPROXY: https://proxy.golang.org
-    override-build: |
-      env GOBIN=$SNAPCRAFT_PART_INSTALL/bin go install
   launcher:
     plugin: dump
     source: snap/local/
