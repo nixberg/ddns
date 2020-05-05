@@ -1,136 +1,137 @@
 package main // import "github.com/nixberg/ddns"
 
 import (
-	"bytes"
 	"errors"
+	"fmt"
 	"io/ioutil"
-	"log"
 	"net"
 	"net/http"
 	"os"
 	"strings"
-	"time"
 
-	"github.com/BurntSushi/toml"
 	cloudflare "github.com/cloudflare/cloudflare-go"
+	"github.com/pelletier/go-toml"
 )
 
-const (
-	sleepInterval time.Duration = 125 * time.Second
-)
+type config struct {
+	APIToken    string   `toml:"apiToken"`
+	ZoneID      string   `toml:"zoneID"`
+	RecordNames []string `toml:"recordNames"`
+}
 
-var (
-	buf    bytes.Buffer
-	logger = log.New(&buf, "", log.Lshortfile)
-)
+func main() {
+	config, err := readConfig()
+	if err != nil {
+		fmt.Println("Error reading config:", err)
+		os.Exit(1)
+	}
 
-func getActualIP() (string, error) {
+	api, err := cloudflare.NewWithAPIToken(config.APIToken)
+	if err != nil {
+		fmt.Println("Error creating Cloudflare API client:", err)
+		os.Exit(1)
+	}
+
+	if len(os.Args) == 2 && os.Args[1] == "validate-config" {
+		_, err := api.DNSRecords(config.ZoneID, cloudflare.DNSRecord{})
+
+		if err != nil {
+			fmt.Println("Could not validate config:", err)
+			os.Exit(1)
+		}
+
+		return
+	}
+
+	ipAddress, err := getIPv4Address()
+	if err != nil {
+		fmt.Println("Error looking up IP address:", err)
+		os.Exit(1)
+	}
+
+	for _, name := range config.RecordNames {
+		err = updateRecord(api, config.ZoneID, name, ipAddress)
+		if err != nil {
+			fmt.Printf("Error updating A record \"%s\": %s\n", name, err)
+		}
+	}
+}
+
+func readConfig() (*config, error) {
+	decoder := toml.NewDecoder(os.Stdin)
+	// TODO: Turn on when avalible: decoder.Strict(true)
+
+	config := config{}
+	err := decoder.Decode(&config)
+	if err != nil {
+		return nil, err
+	}
+
+	return &config, nil
+}
+
+func updateRecord(api *cloudflare.API, zoneID, name, ipAddress string) error {
+	filter := cloudflare.DNSRecord{Name: name, Type: "A"}
+
+	records, err := api.DNSRecords(zoneID, filter)
+	if err != nil {
+		return err
+	}
+
+	if len(records) == 0 {
+		_, err := api.CreateDNSRecord(zoneID, cloudflare.DNSRecord{
+			Type:    "A",
+			Name:    name,
+			Content: ipAddress,
+		})
+
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("Created A record \"%s\" pointing to %s\n", name, ipAddress)
+
+	} else {
+		if records[0].Content == ipAddress {
+			return nil
+		}
+
+		records[0].Content = ipAddress
+		err := api.UpdateDNSRecord(zoneID, records[0].ID, records[0])
+
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("Set A record \"%s\" to %s\n", name, ipAddress)
+	}
+
+	return nil
+}
+
+func getIPv4Address() (string, error) {
 	response, err := http.Get("https://checkip.amazonaws.com")
 	if err != nil {
 		return "", err
 	}
 	defer response.Body.Close()
 
-	ip, err := ioutil.ReadAll(response.Body)
+	data, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		return "", err
 	}
 
-	stringIP := strings.TrimSpace(string(ip))
+	ip := strings.TrimSpace(string(data))
 
-	if net.ParseIP(stringIP) == nil {
-		return "", errors.New("Invalid IP")
+	parsed := net.ParseIP(ip)
+
+	if parsed == nil {
+		return "", errors.New("not an IP address")
 	}
 
-	return stringIP, nil
-}
-
-type config struct {
-	Email   string   `toml:"email"`
-	APIKey  string   `toml:"apiKey"`
-	ZoneID  string   `toml:"zoneID"`
-	Records []string `toml:"records"`
-}
-
-func readConfig() config {
-	config := config{}
-	data, err := ioutil.ReadAll(os.Stdin)
-	if err != nil {
-		logger.Fatal(err)
-	}
-	metadata, err := toml.Decode(string(data), &config)
-	if err != nil {
-		logger.Fatal(err)
-	} else if len(metadata.Undecoded()) != 0 {
-		logger.Fatal("Invalid configuration")
-	}
-	return config
-}
-
-func main() {
-	config := readConfig()
-
-	api, err := cloudflare.New(config.APIKey, config.Email)
-	if err != nil {
-		logger.Fatal(err)
+	if parsed.To4() == nil {
+		return "", errors.New("not an IPv4 address")
 	}
 
-	if len(os.Args) == 2 && os.Args[1] == "check" {
-		return
-	}
-
-	if config.Email == "email" {
-		logger.Println("Found dummy config. Exiting.")
-		return
-	}
-
-	update := func() {
-		actualIP, err := getActualIP()
-		if err != nil {
-			logger.Println(err)
-			return
-		}
-
-		dnsRecords, err := api.DNSRecords(config.ZoneID, cloudflare.DNSRecord{})
-		if err != nil {
-			logger.Println(err)
-			return
-		}
-
-		for _, recordName := range config.Records {
-			recordExists := false
-			for _, dnsRecord := range dnsRecords {
-				if recordName == dnsRecord.Name {
-					if dnsRecord.Content != actualIP {
-						dnsRecord.Content = actualIP
-						err := api.UpdateDNSRecord(config.ZoneID, dnsRecord.ID, dnsRecord)
-						if err != nil {
-							logger.Println(err)
-						} else {
-							logger.Println("Set", dnsRecord.Name, "to", dnsRecord.Content)
-						}
-					}
-					recordExists = true
-					break
-				}
-			}
-
-			if !recordExists {
-				if _, err := api.CreateDNSRecord(config.ZoneID, cloudflare.DNSRecord{
-					Type:    "A",
-					Name:    recordName,
-					Content: actualIP,
-				}); err != nil {
-					logger.Println(err)
-				} else {
-					logger.Println("Created", recordName, "pointing to", actualIP)
-				}
-			}
-		}
-	}
-
-	for {
-		update()
-		time.Sleep(sleepInterval)
-	}
+	return ip, nil
 }

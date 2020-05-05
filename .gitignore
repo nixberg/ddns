@@ -1,5 +1,6 @@
-*.snap
-parts
-prime
-stage
-snap/.snapcraft
+/parts
+/prime
+/stage
+/*.snap
+/snap/.snapcraft
+/ddns.toml

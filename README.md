@@ -5,12 +5,11 @@ Cloudflare DDNS client
 
 In ```ddns.toml```:
 ```toml
-email = "user@example.test"
-apiKey = "abcd"
+apiToken = "abcd"
 zoneID = "efgh"
-records = ["example.test", "sub.example.test"]
+recordNames = ["example.test", "sub.example.test"]
 ```
 
-```bash
-sudo snap set ddns config="$(cat ddns.toml)"
+```console
+> sudo snap set ddns config="$(cat ddns.toml)"
 ```
