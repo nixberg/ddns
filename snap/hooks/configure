@@ -1,3 +1,11 @@
 #!/bin/sh -e
-snapctl get config | $SNAP/bin/ddns check
+if [ -z "$(snapctl get config)" ]; then
+    snapctl stop ddns --disable
+    snapctl set-health blocked "Config not set."
+    exit 0
+fi
+
+snapctl get config | $SNAP/bin/ddns validate-config
+snapctl start ddns --enable
 snapctl restart ddns
+snapctl set-health okay

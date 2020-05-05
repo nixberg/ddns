@@ -1,29 +1,31 @@
 name: ddns
-base: core18
-version: "1"
 summary: Cloudflare DDNS client
-description: etc
-grade: stable
+description: Etc.
+version: "2"
+
+base: core20
+grade: devel
 confinement: strict
+epoch: 2
 
 apps:
   ddns:
-    command: ddns.sh
-    daemon: simple
-    restart-condition: on-abnormal
+    command: bin/ddns.sh
+    daemon: oneshot
+    timer: 00:00~24:00/720 # Every two minutes.
     plugs:
       - network
-  check:
-    command: ddns check
+
+hooks:
+  configure:
+    plugs:
+      - network
 
 parts:
   ddns:
-    build-snaps:
-      - go
-    plugin: nil
+    plugin: go
     source: .
-    override-build: |
-      env GOBIN=$SNAPCRAFT_PART_INSTALL/bin go install
+
   launcher:
     plugin: dump
     source: snap/local/
