@@ -59,7 +59,7 @@ func main() {
 
 func readConfig() (*config, error) {
 	decoder := toml.NewDecoder(os.Stdin)
-	// TODO: Turn on when avalible: decoder.Strict(true)
+	decoder.Strict(true)
 
 	config := config{}
 	err := decoder.Decode(&config)
