@@ -1,6 +1,7 @@
 package main // import "github.com/nixberg/ddns"
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -33,7 +34,7 @@ func main() {
 	}
 
 	if len(os.Args) == 2 && os.Args[1] == "validate-config" {
-		_, err := api.DNSRecords(config.ZoneID, cloudflare.DNSRecord{})
+		_, err := api.DNSRecords(context.TODO(), config.ZoneID, cloudflare.DNSRecord{})
 
 		if err != nil {
 			fmt.Println("Could not validate config:", err)
@@ -73,13 +74,13 @@ func readConfig() (*config, error) {
 func updateRecord(api *cloudflare.API, zoneID, name, ipAddress string) error {
 	filter := cloudflare.DNSRecord{Name: name, Type: "A"}
 
-	records, err := api.DNSRecords(zoneID, filter)
+	records, err := api.DNSRecords(context.TODO(), zoneID, filter)
 	if err != nil {
 		return err
 	}
 
 	if len(records) == 0 {
-		_, err := api.CreateDNSRecord(zoneID, cloudflare.DNSRecord{
+		_, err := api.CreateDNSRecord(context.TODO(), zoneID, cloudflare.DNSRecord{
 			Type:    "A",
 			Name:    name,
 			Content: ipAddress,
@@ -97,7 +98,7 @@ func updateRecord(api *cloudflare.API, zoneID, name, ipAddress string) error {
 		}
 
 		records[0].Content = ipAddress
-		err := api.UpdateDNSRecord(zoneID, records[0].ID, records[0])
+		err := api.UpdateDNSRecord(context.TODO(), zoneID, records[0].ID, records[0])
 
 		if err != nil {
 			return err
