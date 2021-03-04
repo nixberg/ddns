@@ -1,4 +1,5 @@
-#!/bin/sh -e
+#!/bin/sh -eu
+
 if [ -z "$(snapctl get config)" ]; then
     snapctl stop ddns --disable
     snapctl set-health blocked "Config not set."
